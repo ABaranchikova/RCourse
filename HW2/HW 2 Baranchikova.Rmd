@@ -1,0 +1,284 @@
+---
+title: "HW 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(lme4)
+library(vcd)
+library(psych)
+```
+
+###1.0
+```{r 1_0}
+shva = read.table('duryagin_ReductionRussian.txt', header = TRUE)
+```
+
+###1.1
+```{r 1_1}
+shva %>%
+  ggplot(aes(x = f2, y = f1, colour = as.factor(vowel))) +
+  geom_point() +
+  labs(title = 'f2 and f1 of the reduced and stressed vowels', caption = 'Data from Duryagin  2018') + 
+  scale_x_reverse() + 
+  scale_y_reverse() +
+  theme(legend.position = 'none')
+```
+###1.2.1
+```{r 1_2_1}
+shva %>%
+  ggplot(aes(x = vowel, y = f1, fill=vowel)) +
+  geom_boxplot() +
+  coord_flip() + 
+  labs(title = 'f1 distribution in each vowel', x = element_blank(), caption = 'Data from Duryagin  2018') +
+  theme(legend.position = 'none')
+```
+###1.2.2
+```{r 1_2_2}
+shva %>%
+  ggplot(aes(x = vowel, y = f2, fill = vowel)) +
+  geom_boxplot() +
+  coord_flip() + 
+  labs(title = 'f2 distribution in each vowel', x = element_blank(), caption = 'Data from Duryagin  2018') +
+  theme(legend.position = 'none')
+```
+###1.3
+```{r 1_3}
+f1_a <- subset(shva$f1, shva$vowel == 'a')
+qs <- quantile(f1_a)
+IQR_f1_a <- IQR(f1_a) * 1.5
+qs2 <- qs[2]
+IQR_f1_a_qs2 <- qs2 - IQR_f1_a
+qs4 <- qs[4]
+IQR_f1_a_qs4 <- IQR_f1_a + qs4
+
+answ <- subset(f1_a, f1_a < IQR_f1_a_qs2 |  f1_a > IQR_f1_a_qs4)
+answ
+```
+###1.4
+```{r 1_4}
+pc_f1_f2 <- cor(shva$f1, shva$f2, method = 'pearson')
+pc_f1_f2
+```
+###1.5
+```{r 1_5}
+pc_y <- cor(subset(shva$f1,shva$vowel == 'y'), subset(shva$f2,shva$vowel == 'y'), method = 'pearson')
+pc_y
+pc_A <- cor(subset(shva$f1,shva$vowel == 'A'), subset(shva$f2,shva$vowel == 'A'), method = 'pearson')
+pc_A
+pc_a <- cor(subset(shva$f1, shva$vowel == 'a'), subset(shva$f2, shva$vowel == 'a'), method = 'pearson')
+pc_a
+```
+###1.6.1
+```{r 1_6_1}
+magic_line <- lm(f1 ~ f2, shva)
+str(summary(magic_line))
+```
+###1.6.2
+```{r 1_6_2}
+r2 <- summary(model)$adj.r.squared
+r2
+```
+###1.6.3
+```{r 1_6_3}
+shva %>%
+  ggplot(aes(x = f2, y = f1, color = as.factor(vowel))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = 'grey') +
+  scale_x_reverse() + 
+  scale_y_reverse() +
+  labs(title='f2 and f1 of the reduced and stressed vowels', caption = 'Data from Duryagin  2018') +
+  theme(legend.position = 'none')
+```
+###1.7.1, 1.7.2
+```{r 1_7_1, 1_7_2}
+magic_model <- lmer(f1 ~ f2 + (1|vowel), shva)
+summary(magic_model)
+```
+
+###1.7.3
+```{r 1_7_3}
+shva %>%
+  ggplot(aes(x = f2, y = f1)) +
+  geom_point(aes(color = as.factor(vowel))) +
+  geom_line(aes(y=fitted(magic_model), color = shva$vowel)) +
+  scale_x_reverse() + 
+  scale_y_reverse()  +
+  labs(title='f2 and f1 of the reduced and stressed vowels', caption = 'Data from Duryagin  2018') + 
+  theme(legend.position="none")
+```
+
+###2.0
+```{r 2_0}
+elp <- read.csv("https://raw.githubusercontent.com/agricolamz/2018-MAG_R_course/master/data/ELP.csv", encoding = "UTF-8")
+head(elp)
+```
+
+###2.1
+```{r 2_1}
+attach(elp)
+lenth_Sub <- cor.test(Length, SUBTLWF)
+lenth_Mean <- cor.test(Length, Mean_RT)
+SUB_mean <- cor.test(SUBTLWF, Mean_RT)
+lenth_Sub
+lenth_Mean
+SUB_mean
+```
+The highest Pearson’s correlaton value have Length and mean_RT.
+
+###2.2
+```{r 2_2}
+elp %>%
+  ggplot(aes(x = SUBTLWF, y = Mean_RT, color = Length)) + 
+  geom_point() + 
+  scale_color_continuous(low = "lightblue", high = "red")  + 
+  facet_wrap( ~ POS) + 
+  labs(caption = 'data from (Balota et al. 2007)') +
+  scale_x_log10()
+```
+#### 2.3.1, 2.3.2
+```{r 2.3.1, 2.3.2}
+very_special <- lm(Mean_RT ~ log(SUBTLWF) + POS, elp)
+summary(very_special)
+```
+
+###2.3.3
+```{r 2_3_3}
+elp %>%
+  ggplot(aes(x = SUBTLWF, y = Mean_RT, color = Length)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE, color = 'black') +
+  scale_color_continuous(low = "lightblue", high = "red")  + 
+  scale_x_log10() +
+  labs(caption = 'data from (Balota et al. 2007)')
+
+```
+###2.4.1, 2.4.2
+```{r 2_4_1, 2.4.2}
+beauty <- lmer(Mean_RT ~ log(SUBTLWF) + (1 | POS), elp)
+summary(beauty)
+```
+###2.4.3
+```{r 2_4_3}
+elp %>%
+  ggplot(aes(x = log(SUBTLWF), y = Mean_RT, color = POS)) + 
+  geom_point() + 
+  geom_smooth(method = 'lm', se = FALSE, colour = 'black') +
+  facet_wrap( ~ POS) + 
+  labs(x = 'log(SUBTLWF)', caption = 'data from (Balota et al. 2007)') 
+  theme(legend.position = 'none')
+```
+
+###3.0
+```{r 3.0}
+d_caus <- read.csv('https://raw.githubusercontent.com/agricolamz/2018-MAG_R_course/master/data/dutch_causatives.csv')
+```
+
+###3.1
+```{r 3.1}
+#CrSem, Aux
+fisher_Aux_CrSem <- fisher.test(d_caus$CrSem, d_caus$Aux)
+fisher_Aux_CrSem
+chis_Aux_CrSem <- chisq.test(d_caus$CrSem, d_caus$Aux)
+chis_Aux_CrSem
+
+#CeSem, Aux
+fisher_Aux_CeSem <- fisher.test(d_caus$CeSem, d_caus$Aux)
+fisher_Aux_CeSem
+chis_Aux_CeSem <- chisq.test(d_caus$CeSem, d_caus$Aux)
+chis_Aux_CeSem
+
+#Aux, CdEvSem
+fisher_Aux_CdEvSem <- fisher.test(d_caus$Aux, d_caus$CdEvSem)
+fisher_Aux_CdEvSem
+chis_Aux_CdEvSem <- chisq.test(d_caus$Aux, d_caus$CdEvSem)
+chis_Aux_CdEvSem
+
+#Aux, CeSynt
+fisher_Aux_CeSynt <- fisher.test(d_caus$Aux, d_caus$CeSynt)
+fisher_Aux_CeSynt
+chis_Aux_CeSynt <- chisq.test(d_caus$Aux, d_caus$CeSynt)
+chis_Aux_CeSynt
+
+#Aux, EpTrans
+fisher_Aux_EPTrans <- fisher.test(d_caus$Aux, d_caus$EPTrans)
+fisher_Aux_EPTrans
+chis_Aux_EPTrans <- chisq.test(d_caus$Aux, d_caus$EPTrans)
+chis_Aux_EPTrans
+
+#Aux, Country
+fisher_Aux_Country <- fisher.test(d_caus$Aux, d_caus$Country)
+fisher_Aux_Country
+chis_Aux_Country <- chisq.test(d_caus$Aux, d_caus$Country)
+chis_Aux_Country
+
+#Aux, Domain
+fisher_Aux_Domain <- fisher.test(d_caus$Aux, d_caus$Domain)
+fisher_Aux_Domain
+chis_Aux_Domain <- chisq.test(d_caus$Aux, d_caus$Domain)
+chis_Aux_Domain
+
+```
+We can`t analyse the correlation between Aux and CeSynt by using Pearson’s Chi-squared Test. The assotiation is sugnificant. It can be seen from the p-value of fisher test.
+
+###3.2
+```{r 3.2}
+chis_Aux_EPTrans
+```
+P-value is quite low, so there Aux and EPTrans are not independent.
+
+###3.3
+```{r 3.3}
+exp_Aux_EPTranse <- chis_Aux_EPTrans[["expected"]]
+exp_Aux_EPTranse
+```
+###3.4
+```{r 3.4}
+odd_Aux_CrSem <- oddsratio(d_caus$Aux~d_caus$CrSem)
+odd_Aux_CrSem
+odd_Aux_CeSem <- oddsratio(d_caus$Aux~d_caus$CeSem)
+odd_Aux_CeSem
+odd_Aux_CdEvSem <- oddsratio(d_caus$Aux~d_caus$CdEvSem)
+odd_Aux_CdEvSem
+odd_Aux_EPTranse <- oddsratio(d_caus$Aux~d_caus$EPTrans)
+odd_Aux_EPTranse
+odd_Aux_CeSynt <- oddsratio(d_caus$Aux~d_caus$CeSynt)
+odd_Aux_CeSynt
+odd_Aux_Country <- oddsratio(d_caus$Aux~d_caus$Country)
+odd_Aux_Country
+odd_Aux_Domain <- oddsratio(d_caus$Aux~d_caus$Domain)
+odd_Aux_Domain
+```
+###3.5
+```{r 3.5}
+V_Aux_EPTRanse <- phi(table(d_caus$Aux, d_caus$EPTrans))
+V_Aux_EPTRanse
+V_Aux_CrSem <- phi(table(d_caus$Aux, d_caus$CrSem))
+V_Aux_CrSem
+V_Aux_CeSem <- phi(table(d_caus$Aux, d_caus$CeSem))
+V_Aux_CeSem
+V_Aux_CdEvSem <- phi(table(d_caus$Aux, d_caus$CdEvSem))
+V_Aux_CdEvSem
+V_Aux_Country <- phi(table(d_caus$Aux, d_caus$Country))
+V_Aux_Country
+V_Aux_Domain <- phi(table(d_caus$Aux~d_caus$Domain))
+V_Aux_Domain
+V_Aux_CeSynt <- phi(table(d_caus$Aux~d_caus$CeSynt))
+V_Aux_CeSynt
+```
+For Domain and CeSynt phi cannot be calculated, because there is more than one variable.
+
+###3.6
+There is dependency between Aux and EPTranse and Aux and Country.
+###3.7
+```{r 3.7}
+vcd::mosaic(~ Aux + EPTrans + Country, data=d_caus, shade=TRUE, legend=TRUE)
+```
+###3.8
+Firstly because there can be too many pairs to compare. Secondly because we may think that there is no dependency and be wrong.
+###3.9
+We tested two hyphotheses. H0 - there is no dependency between auxiliary verbs and their transitivity. H1 - there is a dependency between auxiliary verbs and their transitivity.
+We find out that the p-value is quite low (p = 0.0001553) so the dependency exists.
